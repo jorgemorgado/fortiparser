@@ -31,11 +31,13 @@ class Stack:
 
 class Lexicon:
 
-    def __init__(self, string_quote: str='"') -> None:
+    def __init__(self, cfg: str=None, string_quote: str='"') -> None:
         self.stack = Stack()
 
         self.is_mline = False   # True when a multiline value is found
         self.escape_char = '\\'
+
+        self.cfg = cfg
         self.string_quote = string_quote
 
         self.dict = self.dict_pos = {}
@@ -65,8 +67,21 @@ class Lexicon:
 
 class FortinetLexicon(Lexicon):
 
-    def __init__(self, string_quote: str='"') -> None:
-        super().__init__(string_quote)
+    def __init__(self, *args) -> None:
+        # args -- a tuple of anonymous arguments
+        cfg = None
+        string_quote ='"'
+
+        # if we have arguments, lets process them
+        if len(args) > 0:
+            for item in args:
+                if type(item) is str:
+                    if len(item) == 1:
+                        string_quote = item     # string quote was given
+                    elif len(item) > 1:
+                        cfg = item              # configuration was given
+
+        super().__init__(cfg, string_quote)
 
         # The keywords found on a "typical" Fortinet configuration
         self.lexicon = {
@@ -147,3 +162,11 @@ class FortinetLexicon(Lexicon):
             # print('Found keyword {} from {}'.format(command, command_action))
 
             getattr(self, command_action)(command, words)
+
+    def parse_cfg(self, cfg:str = None) -> None:
+        if cfg is not None:
+            self.cfg = cfg
+
+        if self.cfg is not None:
+            for line in iter(self.cfg.splitlines()):
+                self.scan(line)
